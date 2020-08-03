@@ -91,7 +91,7 @@ const rewind = async (ctx, tweets, index = 0, chatId = null, messageId = null) =
 
     const actionId = chatId + messageId;
     telegram.editMessageText(chatId, messageId, null, messageText, {
-        reply_markup: tweetKeyboard(index, tweets.length, actionId),
+        reply_markup: tweetMenu(index, tweets.length, actionId),
     });
 
     setActions(tweets, index, chatId, messageId);
@@ -133,10 +133,10 @@ const setActions = (tweets, index, chatId, messageId) => {
     });
 }
 
-const tweetKeyboard = (index, length, actionId) => Markup.inlineKeyboard([
-    Markup.callbackButton('←', `previousTweet-${actionId}`),
+const tweetMenu = (index, length, actionId) => Markup.inlineKeyboard([
+    Markup.callbackButton('←', `previousTweet-${actionId}`, index === 0),
     Markup.callbackButton(`${index + 1}/${length}`, 'tweetByIndex'),
-    Markup.callbackButton('→', `nextTweet-${actionId}`),
+    Markup.callbackButton('→', `nextTweet-${actionId}`, index === length - 1),
 ], {
     rows: 1,
 });
