@@ -75,11 +75,11 @@ bot.command('rewind', async ctx => {
 
         const tweets = await collectPastTweets(process.env.TWITTER_USERNAME, yearsRange);
 
-        await rewind(ctx, tweets);
+        await rewindOne(ctx, tweets);
     }
 });
 
-const rewind = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
+const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
     const messageText = `${yearsAgo} year${(yearsAgo > 1 ? 's' : '')} ago: ${'\n\n' + tweets[index].url}`
 
@@ -102,13 +102,13 @@ const setActions = (tweets, index, chatId, messageId) => {
 
     bot.action(`nextTweet-${actionId}`, async ctx => {
         if (index < tweets.length - 1) {
-            await rewind(ctx, tweets, ++index, chatId, messageId);
+            await rewindOne(ctx, tweets, ++index, chatId, messageId);
         }
     });
 
     bot.action(`previousTweet-${actionId}`, async ctx => {
         if (index > 0) {
-            await rewind(ctx, tweets, --index, chatId, messageId);
+            await rewindOne(ctx, tweets, --index, chatId, messageId);
         }
     });
 
@@ -123,7 +123,7 @@ const setActions = (tweets, index, chatId, messageId) => {
                 const newIndex = Number(ctx.message.text);
 
                 if (newIndex > 0 && newIndex <= tweets.length) {
-                    await rewind(ctx, tweets, newIndex - 1);
+                    await rewindOne(ctx, tweets, newIndex - 1);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
                     await ctx.reply('Invalid index value.');
