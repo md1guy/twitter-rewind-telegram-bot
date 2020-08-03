@@ -122,7 +122,7 @@ const setActions = (tweets, index, chatId, messageId) => {
                 
                 const newIndex = Number(ctx.message.text);
 
-                if (newIndex > 0 && newIndex < tweets.length) {
+                if (newIndex > 0 && newIndex <= tweets.length) {
                     await rewind(ctx, tweets, newIndex - 1);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
