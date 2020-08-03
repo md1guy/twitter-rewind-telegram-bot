@@ -13,19 +13,21 @@ const User = require('./models/user.js');
 const readFile = util.promisify(fs.readFile);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const telegram = new Telegram(process.env.BOT_TOKEN)
+const telegram = new Telegram(process.env.BOT_TOKEN);
 
 bot.use(session());
 bot.start(ctx => ctx.reply('Ready for some cringe?'));
 bot.launch();
 
-mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true }, () => console.log('mlab: Connected!'));
+mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true }, () =>
+    console.log('mlab: Connected!'),
+);
 
 bot.command('register', async ctx => {
     const id = ctx.update.message.chat.id;
 
-    ctx.reply('Now send me your twitter username (without \'@\').');
-    
+    ctx.reply("Now send me your twitter username (without '@').");
+
     ctx.session.register = true;
 
     bot.on('text', async ctx => {
@@ -47,16 +49,17 @@ bot.command('register', async ctx => {
 
 bot.command('parse', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username
+    const username = user.twitter_username;
 
     if (username) {
-
         await deleteAllTweetsByUsername(username);
-        
+
         try {
             const rawTweetData = await readFile(`./data/${username}/tweet.js`, 'utf-8');
             const tweets = parseRawTweets(rawTweetData, username);
-            ctx.reply('Initiated populating database with your tweets. This process may take a while.');
+            ctx.reply(
+                'Initiated populating database with your tweets. This process may take a while.',
+            );
             tweets.forEach(async (e, i) => {
                 await populateDatabase(e);
                 if (i === tweets.length - 1) {
@@ -71,8 +74,7 @@ bot.command('parse', async ctx => {
 
 bot.command('oldest', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username
-
+    const username = user.twitter_username;
 
     if (username) {
         const tweet = await getOldestTweet(username);
@@ -82,8 +84,7 @@ bot.command('oldest', async ctx => {
 
 bot.command('rewindall', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username
-
+    const username = user.twitter_username;
 
     if (username) {
         const oldestTweet = await getOldestTweet(username);
@@ -101,7 +102,7 @@ bot.command('rewindall', async ctx => {
 
                 await ctx.reply(tweet.url);
                 await new Promise(r => setTimeout(r, 300));
-            };
+            }
         } catch (err) {
             console.error(err);
         }
@@ -110,8 +111,7 @@ bot.command('rewindall', async ctx => {
 
 bot.command('rewind', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username
-
+    const username = user.twitter_username;
 
     if (username) {
         const oldestTweet = await getOldestTweet(username);
@@ -124,7 +124,9 @@ bot.command('rewind', async ctx => {
 
 const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
-    const messageText = `${yearsAgo} year${(yearsAgo > 1 ? 's' : '')} ago: ${'\n\n' + tweets[index].url}`
+    const messageText = `${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago: ${
+        '\n\n' + tweets[index].url
+    }`;
 
     if (!chatId && !messageId) {
         const message = await ctx.reply(messageText);
@@ -138,7 +140,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
     });
 
     setActions(tweets, index, chatId, messageId);
-}
+};
 
 const setActions = (tweets, index, chatId, messageId) => {
     const actionId = chatId + messageId;
@@ -162,7 +164,6 @@ const setActions = (tweets, index, chatId, messageId) => {
 
         bot.on('text', async ctx => {
             if (ctx.session.tweetByIndexActionFired) {
-                
                 const newIndex = Number(ctx.message.text);
 
                 if (newIndex > 0 && newIndex <= tweets.length) {
@@ -174,18 +175,22 @@ const setActions = (tweets, index, chatId, messageId) => {
             }
         });
     });
-}
+};
 
-const tweetMenu = (index, length, actionId) => Markup.inlineKeyboard([
-    Markup.callbackButton('←', `previousTweet-${actionId}`, index === 0),
-    Markup.callbackButton(`${index + 1}/${length}`, 'tweetByIndex'),
-    Markup.callbackButton('→', `nextTweet-${actionId}`, index === length - 1),
-], {
-    rows: 1,
-});
+const tweetMenu = (index, length, actionId) =>
+    Markup.inlineKeyboard(
+        [
+            Markup.callbackButton('←', `previousTweet-${actionId}`, index === 0),
+            Markup.callbackButton(`${index + 1}/${length}`, 'tweetByIndex'),
+            Markup.callbackButton('→', `nextTweet-${actionId}`, index === length - 1),
+        ],
+        {
+            rows: 1,
+        },
+    );
 
 const parseRawTweets = (rawTweetData, username) => {
-    const jsonArray = rawTweetData.substring(rawTweetData.indexOf("["));
+    const jsonArray = rawTweetData.substring(rawTweetData.indexOf('['));
     const tweets = [];
 
     JSON.parse(jsonArray).forEach(e => {
@@ -199,7 +204,7 @@ const parseRawTweets = (rawTweetData, username) => {
     });
 
     return tweets;
-}
+};
 
 const populateDatabase = async tweetObject => {
     try {
@@ -212,41 +217,41 @@ const populateDatabase = async tweetObject => {
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const deleteAllTweetsByUsername = async username => {
     try {
-        await Tweet.deleteMany({ 'username': username });
+        await Tweet.deleteMany({ username: username });
         console.log(`Removed all tweets by @${username}.`);
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const getOldestTweet = async username => {
     try {
-        return await Tweet.findOne({ 'username': username }, {}, { sort: { 'date' : 1 } }).exec();
+        return await Tweet.findOne({ username: username }, {}, { sort: { date: 1 } }).exec();
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const deleteUserById = async id => {
     try {
-        await User.deleteOne({ telegram_id : id });
+        await User.deleteOne({ telegram_id: id });
         console.log(`Removed user with id: '${id}'.`);
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const findUserById = async id => {
     try {
-        return await User.findOne({ 'telegram_id': id }).exec();
+        return await User.findOne({ telegram_id: id }).exec();
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const collectPastTweets = async (username, yearsRange) => {
     let yearsAgo = 1;
@@ -257,19 +262,24 @@ const collectPastTweets = async (username, yearsRange) => {
         const dateTo = new Date();
         dateFrom.setFullYear(dateFrom.getFullYear() - yearsAgo);
         dateTo.setFullYear(dateTo.getFullYear() - yearsAgo);
-        dateFrom.setHours(0,0,0,0);
-        dateTo.setHours(0,0,0,0);
+        dateFrom.setHours(0, 0, 0, 0);
+        dateTo.setHours(0, 0, 0, 0);
         dateTo.setDate(dateTo.getDate() + 1);
 
         try {
-            const tweets = await Tweet.find({ username: username, date: { "$gte": dateFrom, "$lt": dateTo } })
+            const tweets = await Tweet.find({
+                username: username,
+                date: { $gte: dateFrom, $lt: dateTo },
+            })
                 .sort({ date: 'asc' })
                 .exec();
-            tweets.forEach(tweet => mappedTweets.push({
-                text: tweet.text,
-                url: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
-                yearsAgo: yearsAgo,
-            }));
+            tweets.forEach(tweet =>
+                mappedTweets.push({
+                    text: tweet.text,
+                    url: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
+                    yearsAgo: yearsAgo,
+                }),
+            );
         } catch (err) {
             console.error(err);
         }
@@ -278,4 +288,4 @@ const collectPastTweets = async (username, yearsRange) => {
     }
 
     return mappedTweets;
-}
+};

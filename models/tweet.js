@@ -3,19 +3,19 @@ const mongoose = require('mongoose');
 const TweetSchema = new mongoose.Schema({
     id: {
         type: String,
-        required: true
+        required: true,
     },
     username: {
         type: String,
-        required: true
+        required: true,
     },
     text: {
         type: String,
-        default: ''
+        default: '',
     },
     date: {
         type: Date,
-        required: true
+        required: true,
     },
 });
 
