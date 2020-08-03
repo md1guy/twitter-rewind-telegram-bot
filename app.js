@@ -8,6 +8,7 @@ const session = require('telegraf/session');
 const Markup = require('telegraf/markup');
 const mongoose = require('mongoose');
 const Tweet = require('./models/tweet.js');
+const User = require('./models/user.js');
 
 const readFile = util.promisify(fs.readFile);
 
@@ -20,15 +21,48 @@ bot.launch();
 
 mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true }, () => console.log('mlab: Connected!'));
 
-bot.command('parse', async ctx => {
-    if (ctx.update.message.chat.id == process.env.TG_ID) {
+bot.command('register', async ctx => {
+    const id = ctx.update.message.chat.id;
 
-        await deleteAllByUsername(process.env.TWITTER_USERNAME);
+    ctx.reply('Now send me your twitter username (without \'@\').');
+    
+    ctx.session.register = true;
+
+    bot.on('text', async ctx => {
+        if (ctx.session.register) {
+            try {
+                await deleteUserById(id);
+                await new User({
+                    telegram_id: id,
+                    twitter_username: ctx.message.text,
+                }).save();
+                ctx.reply('User added.');
+            } catch (err) {
+                console.error(err);
+            }
+            ctx.session.register = false;
+        }
+    });
+});
+
+bot.command('parse', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user.twitter_username
+
+    if (username) {
+
+        await deleteAllTweetsByUsername(username);
         
         try {
-            const rawTweetData = await readFile('./data/tweet.js', 'utf-8');
-            const tweets = parseRawTweets(rawTweetData, process.env.TWITTER_USERNAME);
-            tweets.forEach(e => populateDatabase(e));
+            const rawTweetData = await readFile(`./data/${username}/tweet.js`, 'utf-8');
+            const tweets = parseRawTweets(rawTweetData, username);
+            ctx.reply('Initiated populating database with your tweets. This process may take a while.');
+            tweets.forEach(async (e, i) => {
+                await populateDatabase(e);
+                if (i === tweets.length - 1) {
+                    ctx.reply('Done.');
+                }
+            });
         } catch (err) {
             console.error(err);
         }
@@ -36,19 +70,25 @@ bot.command('parse', async ctx => {
 });
 
 bot.command('oldest', async ctx => {
-    if (ctx.update.message.chat.id == process.env.TG_ID) {
-        const tweet = await getOldestTweet(process.env.TWITTER_USERNAME);
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user.twitter_username
+
+
+    if (username) {
+        const tweet = await getOldestTweet(username);
         ctx.reply(`https://twitter.com/${tweet.username}/status/${tweet.id}`);
     }
 });
 
 bot.command('rewindall', async ctx => {
-    if (ctx.update.message.chat.id == process.env.TG_ID) {
-        const oldestTweet = await getOldestTweet(process.env.TWITTER_USERNAME);
-        const oldestDate = oldestTweet.date;
-        const yearsRange = new Date().getFullYear() - oldestDate.getFullYear();
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user.twitter_username
 
-        const tweets = await collectPastTweets(process.env.TWITTER_USERNAME, yearsRange);
+
+    if (username) {
+        const oldestTweet = await getOldestTweet(username);
+        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+        const tweets = await collectPastTweets(username, yearsRange);
 
         try {
             let yearsAgo;
@@ -69,11 +109,14 @@ bot.command('rewindall', async ctx => {
 });
 
 bot.command('rewind', async ctx => {
-    if (ctx.update.message.chat.id == process.env.TG_ID) {
-        const oldestTweet = await getOldestTweet(process.env.TWITTER_USERNAME);
-        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user.twitter_username
 
-        const tweets = await collectPastTweets(process.env.TWITTER_USERNAME, yearsRange);
+
+    if (username) {
+        const oldestTweet = await getOldestTweet(username);
+        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+        const tweets = await collectPastTweets(username, yearsRange);
 
         await rewindOne(ctx, tweets);
     }
@@ -171,7 +214,7 @@ const populateDatabase = async tweetObject => {
     }
 }
 
-const deleteAllByUsername = async username => {
+const deleteAllTweetsByUsername = async username => {
     try {
         await Tweet.deleteMany({ 'username': username });
         console.log(`Removed all tweets by @${username}.`);
@@ -183,6 +226,23 @@ const deleteAllByUsername = async username => {
 const getOldestTweet = async username => {
     try {
         return await Tweet.findOne({ 'username': username }, {}, { sort: { 'date' : 1 } }).exec();
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+const deleteUserById = async id => {
+    try {
+        await User.deleteOne({ telegram_id : id });
+        console.log(`Removed user with id: '${id}'.`);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+const findUserById = async id => {
+    try {
+        return await User.findOne({ 'telegram_id': id }).exec();
     } catch (err) {
         console.error(err);
     }
