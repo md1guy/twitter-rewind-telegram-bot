@@ -19,8 +19,10 @@ bot.use(session());
 bot.start(ctx => ctx.reply('Ready for some cringe?'));
 bot.launch();
 
-mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true }, () =>
-    console.log('mlab: Connected!'),
+mongoose.connect(
+    process.env.MONGO_URL,
+    { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true },
+    () => console.log('mlab: Connected!'),
 );
 
 bot.command('register', async ctx => {
