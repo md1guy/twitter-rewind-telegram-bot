@@ -157,7 +157,7 @@ const setActions = (tweets, index, chatId, messageId) => {
         }
     });
 
-    bot.action('tweetByIndex', async ctx => {
+    bot.action(`tweetByIndex-${actionId}`, async ctx => {
         await ctx.reply('Now send me tweet index to jump to.');
 
         ctx.session.tweetByIndexActionFired = true;
