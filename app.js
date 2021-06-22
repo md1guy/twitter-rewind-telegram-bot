@@ -76,7 +76,7 @@ bot.command('parse', async ctx => {
     }
 });
 
-bot.command('removeData', async ctx => {
+bot.command('remove_data', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
     const username = user ? user.twitter_username : null;
 
