@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config();
+}
 
 const fs = require('fs');
 const util = require('util');
@@ -93,47 +95,47 @@ bot.command('oldest', async ctx => {
     }
 });
 
-bot.command('rewindall', async ctx => {
-    const user = await findUserById(ctx.update.message.chat.id);
-    const username = user ? user.twitter_username : null;
-
-    if (username) {
-        const oldestTweet = await getOldestTweet(username);
-        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
-        const tweets = await collectPastTweets(username, yearsRange);
-
-        try {
-            let yearsAgo;
-
-            for (const tweet of tweets) {
-                if (tweet.yearsAgo !== yearsAgo) {
-                    yearsAgo = tweet.yearsAgo;
-                    await ctx.reply(`${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago:`);
-                }
-
-                await ctx.reply(tweet.url);
-                await new Promise(r => setTimeout(r, 300));
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    }
-});
-
-// bot.command('rewind', async ctx => {
+// bot.command('rewindall', async ctx => {
 //     const user = await findUserById(ctx.update.message.chat.id);
 //     const username = user ? user.twitter_username : null;
 
 //     if (username) {
 //         const oldestTweet = await getOldestTweet(username);
-//         if (oldestTweet) {
-//             const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
-//             const tweets = await collectPastTweets(username, yearsRange);
+//         const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+//         const tweets = await collectPastTweets(username, yearsRange);
 
-//             await rewindOne(ctx, tweets);
+//         try {
+//             let yearsAgo;
+
+//             for (const tweet of tweets) {
+//                 if (tweet.yearsAgo !== yearsAgo) {
+//                     yearsAgo = tweet.yearsAgo;
+//                     await ctx.reply(`${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago:`);
+//                 }
+
+//                 await ctx.reply(tweet.url);
+//                 await new Promise(r => setTimeout(r, 300));
+//             }
+//         } catch (err) {
+//             console.error(err);
 //         }
 //     }
 // });
+
+bot.command('rewind', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user ? user.twitter_username : null;
+
+    if (username) {
+        const oldestTweet = await getOldestTweet(username);
+        if (oldestTweet) {
+            const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+            const tweets = await collectPastTweets(username, yearsRange);
+
+            await rewindOne(ctx, tweets);
+        }
+    }
+});
 
 const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
