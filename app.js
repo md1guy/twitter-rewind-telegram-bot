@@ -22,7 +22,7 @@ bot.launch();
 mongoose.connect(
     process.env.MONGO_URL,
     { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true },
-    () => console.log('mlab: Connected!'),
+    () => console.log('mongodb: Connected!'),
 );
 
 bot.command('register', async ctx => {
@@ -51,7 +51,7 @@ bot.command('register', async ctx => {
 
 bot.command('parse', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username;
+    const username = user ? user.twitter_username : null;
 
     if (username) {
         await deleteAllTweetsByUsername(username);
@@ -74,9 +74,18 @@ bot.command('parse', async ctx => {
     }
 });
 
+bot.command('removeData', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user ? user.twitter_username : null;
+
+    if (username) {
+        await deleteAllTweetsByUsername(username, ctx);
+    }
+});
+
 bot.command('oldest', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username;
+    const username = user ? user.twitter_username : null;
 
     if (username) {
         const tweet = await getOldestTweet(username);
@@ -86,7 +95,7 @@ bot.command('oldest', async ctx => {
 
 bot.command('rewindall', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username;
+    const username = user ? user.twitter_username : null;
 
     if (username) {
         const oldestTweet = await getOldestTweet(username);
@@ -111,18 +120,20 @@ bot.command('rewindall', async ctx => {
     }
 });
 
-bot.command('rewind', async ctx => {
-    const user = await findUserById(ctx.update.message.chat.id);
-    const username = user.twitter_username;
+// bot.command('rewind', async ctx => {
+//     const user = await findUserById(ctx.update.message.chat.id);
+//     const username = user ? user.twitter_username : null;
 
-    if (username) {
-        const oldestTweet = await getOldestTweet(username);
-        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
-        const tweets = await collectPastTweets(username, yearsRange);
+//     if (username) {
+//         const oldestTweet = await getOldestTweet(username);
+//         if (oldestTweet) {
+//             const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+//             const tweets = await collectPastTweets(username, yearsRange);
 
-        await rewindOne(ctx, tweets);
-    }
-});
+//             await rewindOne(ctx, tweets);
+//         }
+//     }
+// });
 
 const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
@@ -221,10 +232,10 @@ const populateDatabase = async tweetObject => {
     }
 };
 
-const deleteAllTweetsByUsername = async username => {
+const deleteAllTweetsByUsername = async (username, ctx) => {
     try {
         await Tweet.deleteMany({ username: username });
-        console.log(`Removed all tweets by @${username}.`);
+        if (ctx) ctx.reply(`Removed all tweets by @${username}.`);
     } catch (err) {
         console.error(err);
     }
