@@ -10,7 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
-    "mongoose": "^5.9.25",
+    "mongoose": "^5.12.14",
+    "node-schedule": "^2.0.0",
     "telegraf": "^3.38.0"
   }
 }

@@ -11,6 +11,7 @@ const Markup = require('telegraf/markup');
 const mongoose = require('mongoose');
 const Tweet = require('./models/tweet.js');
 const User = require('./models/user.js');
+const schedule = require('node-schedule');
 
 const readFile = util.promisify(fs.readFile);
 
@@ -27,6 +28,14 @@ mongoose.connect(
     () => console.log('mongodb: Connected!'),
 );
 
+const job = schedule.scheduleJob('0 * * * *', async () => {
+    const subscribedUsers = await User.find({ subscribed: true });
+    
+    subscribedUsers.forEach(user => {
+        rewind(null, user.twitter_username, user.telegram_id);
+    });
+});
+
 bot.command('register', async ctx => {
     const id = ctx.update.message.chat.id;
 
@@ -41,6 +50,7 @@ bot.command('register', async ctx => {
                 await new User({
                     telegram_id: id,
                     twitter_username: ctx.message.text,
+                    subscribed: false,
                 }).save();
                 ctx.reply('User added.');
             } catch (err) {
@@ -95,53 +105,75 @@ bot.command('oldest', async ctx => {
     }
 });
 
-// bot.command('rewindall', async ctx => {
-//     const user = await findUserById(ctx.update.message.chat.id);
-//     const username = user ? user.twitter_username : null;
+bot.command('rewindall', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    const username = user ? user.twitter_username : null;
 
-//     if (username) {
-//         const oldestTweet = await getOldestTweet(username);
-//         const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
-//         const tweets = await collectPastTweets(username, yearsRange);
+    if (username) {
+        const oldestTweet = await getOldestTweet(username);
+        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+        const tweets = await collectPastTweets(username, yearsRange);
 
-//         try {
-//             let yearsAgo;
+        try {
+            let yearsAgo;
 
-//             for (const tweet of tweets) {
-//                 if (tweet.yearsAgo !== yearsAgo) {
-//                     yearsAgo = tweet.yearsAgo;
-//                     await ctx.reply(`${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago:`);
-//                 }
+            for (const tweet of tweets) {
+                if (tweet.yearsAgo !== yearsAgo) {
+                    yearsAgo = tweet.yearsAgo;
+                    await ctx.reply(`${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago:`);
+                }
 
-//                 await ctx.reply(tweet.url);
-//                 await new Promise(r => setTimeout(r, 300));
-//             }
-//         } catch (err) {
-//             console.error(err);
-//         }
-//     }
-// });
+                await ctx.reply(tweet.url);
+                await new Promise(r => setTimeout(r, 300));
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+});
 
 bot.command('rewind', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
     const username = user ? user.twitter_username : null;
 
     if (username) {
-        const oldestTweet = await getOldestTweet(username);
-        if (oldestTweet) {
-            const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
-            const tweets = await collectPastTweets(username, yearsRange);
-
-            await rewindOne(ctx, tweets);
-        }
+        rewind(ctx, username);
     }
 });
+
+bot.command('subscribe', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    await subscribeUser(user);
+    ctx.reply('Succesfully subscribed for daily rewinds.')
+});
+
+bot.command('unsubscribe', async ctx => {
+    const user = await findUserById(ctx.update.message.chat.id);
+    await unsubscribeUser(user);
+    ctx.reply('Succesfully unsubscribed for daily rewinds.')
+});
+
+const rewind = async (ctx, username, chatId) => {
+    const oldestTweet = await getOldestTweet(username);
+    if (oldestTweet) {
+        const yearsRange = new Date().getFullYear() - oldestTweet.date.getFullYear();
+        const tweets = await collectPastTweets(username, yearsRange);
+
+        await rewindOne(ctx ? ctx : null, tweets, 0, chatId ? chatId : null);
+    }
+}
 
 const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
     const messageText = `${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago: ${
         '\n\n' + tweets[index].url
     }`;
+
+    if (!ctx && chatId) {
+        const message = await bot.telegram.sendMessage(chatId, messageText);
+        chatId = message.chat.id;
+        messageId = message.message_id;
+    }
 
     if (!chatId && !messageId) {
         const message = await ctx.reply(messageText);
@@ -267,6 +299,24 @@ const findUserById = async id => {
         console.error(err);
     }
 };
+
+const subscribeUser = async user => {
+    try {
+        user.subscribed = true;
+        user.save()
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+const unsubscribeUser = async user => {
+    try {
+        user.subscribed = false;
+        user.save()
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 const collectPastTweets = async (username, yearsRange) => {
     let yearsAgo = 1;
