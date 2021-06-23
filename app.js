@@ -190,7 +190,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
 };
 
 const setActions = (tweets, index, chatId, messageId) => {
-    const actionId = chatId + messageId;
+    const actionId = chatId + messageId + new Date().getDate();
 
     bot.action(`nextTweet-${actionId}`, async ctx => {
         if (index < tweets.length - 1) {
