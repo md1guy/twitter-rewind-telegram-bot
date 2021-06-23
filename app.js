@@ -28,7 +28,7 @@ mongoose.connect(
     () => console.log('mongodb: Connected!'),
 );
 
-const job = schedule.scheduleJob('* 11 * * *', async () => {
+const job = schedule.scheduleJob('* 8 * * *', async () => {
     const subscribedUsers = await User.find({ subscribed: true });
     
     subscribedUsers.forEach(user => {
