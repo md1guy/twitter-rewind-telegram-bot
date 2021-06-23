@@ -181,7 +181,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
         messageId = message.message_id;
     }
 
-    const actionId = chatId + messageId;
+    const actionId = chatId + messageId + new Date().getDate();
     telegram.editMessageText(chatId, messageId, null, messageText, {
         reply_markup: tweetMenu(index, tweets.length, actionId),
     });
