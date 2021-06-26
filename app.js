@@ -181,7 +181,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
         messageId = message.message_id;
     }
 
-    const actionId = chatId + messageId + new Date().getDate();
+    const actionId = chatId + messageId;
     telegram.editMessageText(chatId, messageId, null, messageText, {
         reply_markup: tweetMenu(index, tweets.length, actionId),
     });
@@ -190,7 +190,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
 };
 
 const setActions = (tweets, index, chatId, messageId) => {
-    const actionId = chatId + messageId + new Date().getDate();
+    const actionId = chatId + messageId;
 
     bot.action(`nextTweet-${actionId}`, async ctx => {
         if (index < tweets.length - 1) {
@@ -214,7 +214,7 @@ const setActions = (tweets, index, chatId, messageId) => {
                 const newIndex = Number(ctx.message.text);
 
                 if (newIndex > 0 && newIndex <= tweets.length) {
-                    await rewindOne(ctx, tweets, newIndex - 1);
+                    await rewindOne(ctx, tweets, newIndex - 1, chatId, messageId);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
                     await ctx.reply('Invalid index value.');
