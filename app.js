@@ -212,9 +212,10 @@ const setActions = (tweets, index, chatId, messageId) => {
         bot.on('text', async ctx => {
             if (ctx.session.tweetByIndexActionFired) {
                 const newIndex = Number(ctx.message.text);
+                index = newIndex - 1;
 
                 if (newIndex > 0 && newIndex <= tweets.length) {
-                    await rewindOne(ctx, tweets, newIndex - 1, chatId, messageId);
+                    await rewindOne(ctx, tweets, index, chatId, messageId);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
                     await ctx.reply('Invalid index value.');
