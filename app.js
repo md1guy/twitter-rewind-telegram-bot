@@ -215,6 +215,7 @@ const setActions = (tweets, index, chatId, messageId) => {
                 index = newIndex - 1;
 
                 if (newIndex > 0 && newIndex <= tweets.length) {
+                    console.log(`chatId: '${chatId}', messageId: '${messageId}'`);
                     await rewindOne(ctx, tweets, index, chatId, messageId);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
