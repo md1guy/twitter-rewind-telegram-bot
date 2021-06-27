@@ -180,6 +180,9 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
         chatId = message.chat.id;
         messageId = message.message_id;
     }
+    
+    ctx.session.chatId = chatId;
+    ctx.session.messageId = messageId;
 
     const actionId = chatId + messageId;
     telegram.editMessageText(chatId, messageId, null, messageText, {
@@ -214,9 +217,8 @@ const setActions = (tweets, index, chatId, messageId) => {
                 const newIndex = Number(ctx.message.text);
                 index = newIndex - 1;
 
-                if (newIndex > 0 && newIndex <= tweets.length) {
-                    console.log(`chatId: '${chatId}', messageId: '${messageId}'`);
-                    await rewindOne(ctx, tweets, index, chatId, messageId);
+                if (newIndex > 0 && newIndex <= tweets.length)
+                    await rewindOne(ctx, tweets, index, ctx.session.chatId, ctx.session.messageId);
                     ctx.session.tweetByIndexActionFired = false;
                 } else {
                     await ctx.reply('Invalid index value.');
