@@ -32,11 +32,11 @@ const jumpToTweetWizard = new WizardScene(
         return ctx.wizard.next();
     },
     async ctx => {
-        ctx.session.index = Number(ctx.message.text) - 1;
+        const index = Number(ctx.message.text) - 1;
 
-        if (ctx.session.index >= 0 && ctx.session.index < ctx.scene.state.tweets.length) {
+        if (index >= 0 && index < ctx.scene.state.tweets.length) {
             try {
-                await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
+                await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, index, ctx.scene.state.chatId, ctx.scene.state.messageId);
                 ctx.deleteMessage(ctx.scene.state.requestIndexMessageId);
                 ctx.deleteMessage(ctx.message.message_id);
             } catch (err) {
