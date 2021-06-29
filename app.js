@@ -36,7 +36,7 @@ mongoose.connect(
 const job = schedule.scheduleJob('0 8 * * *', async () => {
     try {
         const subscribedUsers = await User.find({ subscribed: true });
-    } catch {
+    } catch (err) {
         console.error(err);
     }
 
