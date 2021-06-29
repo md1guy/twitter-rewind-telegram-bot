@@ -32,7 +32,7 @@ const jumpToTweetWizard = new WizardScene(
     async ctx => {
         ctx.session.index = Number(ctx.message.text) - 1;
 
-        if (ctx.session.index > 0 && ctx.session.index <= ctx.scene.state.tweets.length) {
+        if (ctx.session.index >= 0 && ctx.session.index < ctx.scene.state.tweets.length) {
             await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
         } else {
             ctx.reply('Invalid index value.');
