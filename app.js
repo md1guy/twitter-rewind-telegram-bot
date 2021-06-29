@@ -227,16 +227,16 @@ const registerUserWizard = new WizardScene(
 const jumpToTweetWizard = new WizardScene(
     'JUMP_TO_TWEET_SCENE',
     ctx => {
-        await ctx.reply('Now send me tweet index to jump to.');
+        ctx.reply('Now send me tweet index to jump to.');
         return ctx.wizard.next();
     },
-    ctx => {
+    async ctx => {
         index = Number(ctx.message.text) - 1;
 
         if (newIndex > 0 && newIndex <= tweets.length) {
             await rewindOne(ctx, tweets, index, chatId, messageId);
         } else {
-            await ctx.reply('Invalid index value.');
+            ctx.reply('Invalid index value.');
         }
 
         return ctx.scene.leave();
