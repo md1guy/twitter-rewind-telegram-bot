@@ -28,7 +28,7 @@ const jumpToTweetWizard = new WizardScene(
     'JUMP_TO_TWEET_SCENE',
     ctx => {
         const requestIndexMessage = ctx.reply('Now send me tweet index to jump to.');
-        ctx.scene.session.requestIndexMessageId = requestIndexMessage.message_id;
+        ctx.scene.state.requestIndexMessageId = requestIndexMessage.message_id;
         return ctx.wizard.next();
     },
     async ctx => {
@@ -37,7 +37,7 @@ const jumpToTweetWizard = new WizardScene(
         if (ctx.session.index >= 0 && ctx.session.index < ctx.scene.state.tweets.length) {
             try {
                 await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
-                ctx.deleteMessage(ctx.scene.session.requestIndexMessageId);
+                ctx.deleteMessage(ctx.scene.state.requestIndexMessageId);
                 ctx.deleteMessage(ctx.message.message_id);
             } catch (err) {
                 console.error(err);
