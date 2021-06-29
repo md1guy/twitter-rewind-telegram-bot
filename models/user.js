@@ -12,8 +12,8 @@ const UserSchema = new mongoose.Schema({
     },
     subscribed: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -178,19 +178,25 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
 const setActions = (tweets, index, chatId, messageId) => {
     const actionId = chatId + messageId;
 
-    bot.action(`nextTweet-${actionId}`, async ctx => {
+    const nextTweetRegex = new RegExp(`(nextTweet)-(${actionId})-([0-9]+)`);
+    const previousTweet = new RegExp(`(previousTweet)-(${actionId})-([0-9]+)`);
+    const tweetByIndexRegex = new RegExp(`(tweetByIndex)-(${actionId})-([0-9]+)`);
+
+    bot.action(nextTweetRegex, async ctx => {
+        index = ctx.match[3];
         if (index < tweets.length - 1) {
             await rewindOne(ctx, tweets, ++index, chatId, messageId);
         }
     });
 
-    bot.action(`previousTweet-${actionId}`, async ctx => {
+    bot.action(previousTweet, async ctx => {
+        index = ctx.match[3];
         if (index > 0) {
             await rewindOne(ctx, tweets, --index, chatId, messageId);
         }
     });
 
-    bot.action(`tweetByIndex-${actionId}`, async ctx => {
+    bot.action(tweetByIndexRegex, async ctx => {
         ctx.scene.enter('JUMP_TO_TWEET_SCENE', {
             rewindOne: rewindOne,
             tweets: tweets,
