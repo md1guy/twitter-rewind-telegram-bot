@@ -16,24 +16,32 @@ const registerUserWizard = new WizardScene(
                 subscribed: false,
             }).save();
             ctx.reply('User added.');
-            return ctx.scene.leave();
         } catch (err) {
             console.error(err);
         }
+
+        return ctx.scene.leave();
     },
 );
 
 const jumpToTweetWizard = new WizardScene(
     'JUMP_TO_TWEET_SCENE',
     ctx => {
-        ctx.reply('Now send me tweet index to jump to.');
+        const requestIndexMessage = ctx.reply('Now send me tweet index to jump to.');
+        ctx.scene.session.requestIndexMessageId = requestIndexMessage.message_id;
         return ctx.wizard.next();
     },
     async ctx => {
         ctx.session.index = Number(ctx.message.text) - 1;
 
         if (ctx.session.index >= 0 && ctx.session.index < ctx.scene.state.tweets.length) {
-            await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
+            try {
+                await ctx.scene.state.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
+                ctx.deleteMessage(ctx.scene.session.requestIndexMessageId);
+                ctx.deleteMessage(ctx.message.message_id);
+            } catch (err) {
+                console.error(err);
+            }
         } else {
             ctx.reply('Invalid index value.');
         }

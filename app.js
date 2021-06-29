@@ -34,8 +34,12 @@ mongoose.connect(
 );
 
 const job = schedule.scheduleJob('0 8 * * *', async () => {
-    const subscribedUsers = await User.find({ subscribed: true });
-    
+    try {
+        const subscribedUsers = await User.find({ subscribed: true });
+    } catch {
+        console.error(err);
+    }
+
     subscribedUsers.forEach(user => {
         rewind(null, user.twitter_username, user.telegram_id);
     });
