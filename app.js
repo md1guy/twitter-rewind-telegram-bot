@@ -8,6 +8,7 @@ const { Telegraf } = require('telegraf');
 const Telegram = require('telegraf/telegram');
 const session = require('telegraf/session');
 const Markup = require('telegraf/markup');
+const WizardScene = require('telegraf/scenes/wizard')
 const mongoose = require('mongoose');
 const Tweet = require('./models/tweet.js');
 const User = require('./models/user.js');
@@ -37,28 +38,7 @@ const job = schedule.scheduleJob('0 8 * * *', async () => {
 });
 
 bot.command('register', async ctx => {
-    const id = ctx.update.message.chat.id;
-
-    ctx.reply("Now send me your twitter username (without '@').");
-
-    ctx.session.register = true;
-
-    bot.on('text', async ctx => {
-        if (ctx.session.register) {
-            try {
-                await deleteUserById(id);
-                await new User({
-                    telegram_id: id,
-                    twitter_username: ctx.message.text,
-                    subscribed: false,
-                }).save();
-                ctx.reply('User added.');
-            } catch (err) {
-                console.error(err);
-            }
-            ctx.session.register = false;
-        }
-    });
+    ctx.scene.enter('REGISTER_USER_SCENE');
 });
 
 bot.command('parse', async ctx => {
@@ -208,25 +188,50 @@ const setActions = (tweets, index, chatId, messageId) => {
     });
 
     bot.action(`tweetByIndex-${actionId}`, async ctx => {
-        await ctx.reply('Now send me tweet index to jump to.');
-
-        ctx.session.tweetByIndexActionFired = true;
-
-        bot.on('text', async ctx => {
-            if (ctx.session.tweetByIndexActionFired) {
-                const newIndex = Number(ctx.message.text);
-                index = newIndex - 1;
-
-                if (newIndex > 0 && newIndex <= tweets.length)
-                    await rewindOne(ctx, tweets, index, ctx.session.chatId, ctx.session.messageId);
-                    ctx.session.tweetByIndexActionFired = false;
-                } else {
-                    await ctx.reply('Invalid index value.');
-                }
-            }
-        });
+        ctx.scene.enter('JUMP_TO_TWEET_SCENE');
     });
 };
+
+const registerUserWizard = new WizardScene(
+    'REGISTER_USER_SCENE',
+    ctx => {
+        ctx.reply("Now send me your twitter username (without '@').");
+        return ctx.wizard.next();
+    },
+    async ctx => {
+        try {
+            await deleteUserById(id);
+            await new User({
+                telegram_id: ctx.update.message.chat.id,
+                twitter_username: ctx.message.text,
+                subscribed: false,
+            }).save();
+            ctx.reply('User added.');
+            return ctx.scene.leave();
+        } catch (err) {
+            console.error(err);
+        }
+    },
+);
+
+const jumpToTweetWizard = new WizardScene(
+    'JUMP_TO_TWEET_SCENE',
+    ctx => {
+        await ctx.reply('Now send me tweet index to jump to.');
+        return ctx.wizard.next();
+    },
+    ctx => {
+        index = Number(ctx.message.text) - 1;
+
+        if (newIndex > 0 && newIndex <= tweets.length) {
+            await rewindOne(ctx, tweets, index, chatId, messageId);
+        } else {
+            await ctx.reply('Invalid index value.');
+        }
+
+        return ctx.scene.leave();
+    },
+);
 
 const tweetMenu = (index, length, actionId) =>
     Markup.inlineKeyboard(
