@@ -37,6 +37,16 @@ const job = schedule.scheduleJob('0 8 * * *', async () => {
     });
 });
 
+bot.command('version', ctx => {
+    const revision = require('child_process')
+        .execSync('git rev-parse HEAD')
+        .toString()
+        .trim()
+        .slice(0, 7);
+
+    ctx.reply(revision);
+});
+
 bot.command('register', async ctx => {
     ctx.scene.enter('REGISTER_USER_SCENE');
 });
