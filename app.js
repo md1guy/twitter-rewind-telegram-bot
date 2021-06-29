@@ -178,9 +178,6 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
         chatId = message.chat.id;
         messageId = message.message_id;
     }
-    
-    ctx.session.chatId = chatId;
-    ctx.session.messageId = messageId;
 
     const actionId = chatId + messageId;
     telegram.editMessageText(chatId, messageId, null, messageText, {
@@ -207,7 +204,6 @@ const setActions = (tweets, index, chatId, messageId) => {
 
     bot.action(`tweetByIndex-${actionId}`, async ctx => {
         ctx.scene.enter('JUMP_TO_TWEET_SCENE', { rewindOne: rewindOne, tweets: tweets, chatId: chatId, messageId: messageId });
-        index = ctx.session.index;
     });
 };
 
