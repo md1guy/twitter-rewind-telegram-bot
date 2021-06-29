@@ -9,10 +9,10 @@ const Telegram = require('telegraf/telegram');
 const Stage = require('telegraf/stage')
 const session = require('telegraf/session');
 const mongoose = require('mongoose');
-const Tweet = require('./models/tweet.js');
-const User = require('./models/user.js');
-const markup = require('./markup');
+const Tweet = require('./models/tweet');
+const User = require('./models/user');
 const scenes = require('./scenes');
+const markup = require('./markup');
 const schedule = require('node-schedule');
 const readFile = util.promisify(fs.readFile);
 
@@ -52,7 +52,7 @@ bot.command('version', ctx => {
 });
 
 bot.command('register', async ctx => {
-    ctx.scene.enter('REGISTER_USER_SCENE');
+    ctx.scene.enter('REGISTER_USER_SCENE', { deleteUserById: deleteUserById });
 });
 
 bot.command('parse', async ctx => {
@@ -202,7 +202,8 @@ const setActions = (tweets, index, chatId, messageId) => {
     });
 
     bot.action(`tweetByIndex-${actionId}`, async ctx => {
-        ctx.scene.enter('JUMP_TO_TWEET_SCENE');
+        ctx.scene.enter('JUMP_TO_TWEET_SCENE', { rewindOne: rewindOne, tweets: tweets, chatId: chatId, messageId: messageId });
+        index = ctx.session.index;
     });
 };
 

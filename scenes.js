@@ -1,4 +1,5 @@
 const WizardScene = require('telegraf/scenes/wizard');
+const User = require('./models/user.js');
 
 const registerUserWizard = new WizardScene(
     'REGISTER_USER_SCENE',
@@ -8,7 +9,7 @@ const registerUserWizard = new WizardScene(
     },
     async ctx => {
         try {
-            await deleteUserById(id);
+            await ctx.scene.state.deleteUserById(ctx.update.message.chat.id);
             await new User({
                 telegram_id: ctx.update.message.chat.id,
                 twitter_username: ctx.message.text,
@@ -29,10 +30,10 @@ const jumpToTweetWizard = new WizardScene(
         return ctx.wizard.next();
     },
     async ctx => {
-        index = Number(ctx.message.text) - 1;
+        ctx.session.index = Number(ctx.message.text) - 1;
 
-        if (newIndex > 0 && newIndex <= tweets.length) {
-            await rewindOne(ctx, tweets, index, chatId, messageId);
+        if (ctx.session.index > 0 && ctx.session.index <= ctx.scene.state.tweets.length) {
+            await ctx.scene.session.rewindOne(ctx, ctx.scene.state.tweets, ctx.session.index, ctx.scene.state.chatId, ctx.scene.state.messageId);
         } else {
             ctx.reply('Invalid index value.');
         }
