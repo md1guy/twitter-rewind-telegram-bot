@@ -26,9 +26,9 @@ const registerUserWizard = new WizardScene(
 
 const jumpToTweetWizard = new WizardScene(
     'JUMP_TO_TWEET_SCENE',
-    ctx => {
-        const requestIndexMessage = ctx.reply('Now send me tweet index to jump to.');
-        ctx.scene.state.requestIndexMessageId = requestIndexMessage.message_id;
+    async ctx => {
+        const { message_id } = await ctx.reply('Now send me tweet index to jump to.');
+        ctx.scene.state.requestIndexMessageId = message_id;
         return ctx.wizard.next();
     },
     async ctx => {
