@@ -2,19 +2,17 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
 
-const fs = require('fs');
-const util = require('util');
+const readFile = require('util').promisify(require('fs').readFile);
+const schedule = require('node-schedule');
 const { Telegraf } = require('telegraf');
 const Telegram = require('telegraf/telegram');
-const Stage = require('telegraf/stage')
+const Stage = require('telegraf/stage');
 const session = require('telegraf/session');
 const mongoose = require('mongoose');
 const Tweet = require('./models/tweet');
 const User = require('./models/user');
 const scenes = require('./scenes');
 const markup = require('./markup');
-const schedule = require('node-schedule');
-const readFile = util.promisify(fs.readFile);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const telegram = new Telegram(process.env.BOT_TOKEN);
@@ -27,10 +25,8 @@ bot.use(stage.middleware());
 bot.start(ctx => ctx.reply('Ready for some cringe?'));
 bot.launch();
 
-mongoose.connect(
-    process.env.MONGO_URL,
-    { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true },
-    () => console.log('mongodb: Connected!'),
+mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true }, () =>
+    console.log('mongodb: Connected!'),
 );
 
 const job = schedule.scheduleJob('0 8 * * *', async () => {
@@ -46,11 +42,7 @@ const job = schedule.scheduleJob('0 8 * * *', async () => {
 });
 
 bot.command('version', ctx => {
-    const revision = require('child_process')
-        .execSync('git rev-parse HEAD')
-        .toString()
-        .trim()
-        .slice(0, 7);
+    const revision = require('child_process').execSync('git rev-parse HEAD').toString().trim().slice(0, 7);
 
     ctx.reply(revision);
 });
@@ -69,9 +61,7 @@ bot.command('parse', async ctx => {
         try {
             const rawTweetData = await readFile(`./data/${username}/tweet.js`, 'utf-8');
             const tweets = parseRawTweets(rawTweetData, username);
-            ctx.reply(
-                'Initiated populating database with your tweets. This process may take a while.',
-            );
+            ctx.reply('Initiated populating database with your tweets. This process may take a while.');
             tweets.forEach(async (e, i) => {
                 await populateDatabase(e);
                 if (i === tweets.length - 1) {
@@ -142,13 +132,13 @@ bot.command('rewind', async ctx => {
 bot.command('subscribe', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
     await subscribeUser(user);
-    ctx.reply('Succesfully subscribed for daily rewinds.')
+    ctx.reply('Succesfully subscribed for daily rewinds.');
 });
 
 bot.command('unsubscribe', async ctx => {
     const user = await findUserById(ctx.update.message.chat.id);
     await unsubscribeUser(user);
-    ctx.reply('Succesfully unsubscribed for daily rewinds.')
+    ctx.reply('Succesfully unsubscribed for daily rewinds.');
 });
 
 const rewind = async (ctx, username, chatId) => {
@@ -159,13 +149,11 @@ const rewind = async (ctx, username, chatId) => {
 
         await rewindOne(ctx ? ctx : null, tweets, 0, chatId ? chatId : null);
     }
-}
+};
 
 const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null) => {
     const yearsAgo = tweets[index].yearsAgo;
-    const messageText = `${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago: ${
-        '\n\n' + tweets[index].url
-    }`;
+    const messageText = `${yearsAgo} year${yearsAgo > 1 ? 's' : ''} ago: ${'\n\n' + tweets[index].url}`;
 
     if (!ctx && chatId) {
         const message = await bot.telegram.sendMessage(chatId, messageText);
@@ -203,7 +191,12 @@ const setActions = (tweets, index, chatId, messageId) => {
     });
 
     bot.action(`tweetByIndex-${actionId}`, async ctx => {
-        ctx.scene.enter('JUMP_TO_TWEET_SCENE', { rewindOne: rewindOne, tweets: tweets, chatId: chatId, messageId: messageId });
+        ctx.scene.enter('JUMP_TO_TWEET_SCENE', {
+            rewindOne: rewindOne,
+            tweets: tweets,
+            chatId: chatId,
+            messageId: messageId,
+        });
     });
 };
 
@@ -274,20 +267,20 @@ const findUserById = async id => {
 const subscribeUser = async user => {
     try {
         user.subscribed = true;
-        user.save()
+        user.save();
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const unsubscribeUser = async user => {
     try {
         user.subscribed = false;
-        user.save()
+        user.save();
     } catch (err) {
         console.error(err);
     }
-}
+};
 
 const collectPastTweets = async (username, yearsRange) => {
     let yearsAgo = 1;
