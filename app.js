@@ -6,20 +6,24 @@ const fs = require('fs');
 const util = require('util');
 const { Telegraf } = require('telegraf');
 const Telegram = require('telegraf/telegram');
+const Stage = require('telegraf/stage')
 const session = require('telegraf/session');
-const Markup = require('telegraf/markup');
-const WizardScene = require('telegraf/scenes/wizard')
 const mongoose = require('mongoose');
 const Tweet = require('./models/tweet.js');
 const User = require('./models/user.js');
+const markup = require('./markup');
+const scenes = require('./scenes');
 const schedule = require('node-schedule');
-
 const readFile = util.promisify(fs.readFile);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const telegram = new Telegram(process.env.BOT_TOKEN);
+const stage = new Stage();
+
+stage.register(scenes.registerUserWizard, scenes.jumpToTweetWizard);
 
 bot.use(session());
+bot.use(stage.middleware());
 bot.start(ctx => ctx.reply('Ready for some cringe?'));
 bot.launch();
 
@@ -176,7 +180,7 @@ const rewindOne = async (ctx, tweets, index = 0, chatId = null, messageId = null
 
     const actionId = chatId + messageId;
     telegram.editMessageText(chatId, messageId, null, messageText, {
-        reply_markup: tweetMenu(index, tweets.length, actionId),
+        reply_markup: markup.tweetMenu(index, tweets.length, actionId),
     });
 
     setActions(tweets, index, chatId, messageId);
@@ -201,59 +205,6 @@ const setActions = (tweets, index, chatId, messageId) => {
         ctx.scene.enter('JUMP_TO_TWEET_SCENE');
     });
 };
-
-const registerUserWizard = new WizardScene(
-    'REGISTER_USER_SCENE',
-    ctx => {
-        ctx.reply("Now send me your twitter username (without '@').");
-        return ctx.wizard.next();
-    },
-    async ctx => {
-        try {
-            await deleteUserById(id);
-            await new User({
-                telegram_id: ctx.update.message.chat.id,
-                twitter_username: ctx.message.text,
-                subscribed: false,
-            }).save();
-            ctx.reply('User added.');
-            return ctx.scene.leave();
-        } catch (err) {
-            console.error(err);
-        }
-    },
-);
-
-const jumpToTweetWizard = new WizardScene(
-    'JUMP_TO_TWEET_SCENE',
-    ctx => {
-        ctx.reply('Now send me tweet index to jump to.');
-        return ctx.wizard.next();
-    },
-    async ctx => {
-        index = Number(ctx.message.text) - 1;
-
-        if (newIndex > 0 && newIndex <= tweets.length) {
-            await rewindOne(ctx, tweets, index, chatId, messageId);
-        } else {
-            ctx.reply('Invalid index value.');
-        }
-
-        return ctx.scene.leave();
-    },
-);
-
-const tweetMenu = (index, length, actionId) =>
-    Markup.inlineKeyboard(
-        [
-            Markup.callbackButton('←', `previousTweet-${actionId}`, index === 0),
-            Markup.callbackButton(`${index + 1}/${length}`, `tweetByIndex-${actionId}`),
-            Markup.callbackButton('→', `nextTweet-${actionId}`, index === length - 1),
-        ],
-        {
-            rows: 1,
-        },
-    );
 
 const parseRawTweets = (rawTweetData, username) => {
     const jsonArray = rawTweetData.substring(rawTweetData.indexOf('['));
