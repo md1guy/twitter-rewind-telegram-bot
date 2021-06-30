@@ -8,19 +8,21 @@ const registerUserWizard = new WizardScene(
         return ctx.wizard.next();
     },
     async ctx => {
-        try {
-            await ctx.scene.state.deleteUserById(ctx.update.message.chat.id);
-            await new User({
-                telegram_id: ctx.update.message.chat.id,
-                twitter_username: ctx.message.text,
-                subscribed: false,
-            }).save();
-            ctx.reply('User added.');
-        } catch (err) {
-            console.error(err);
-        }
+        if (ctx.message) {
+            try {
+                await ctx.scene.state.deleteUserById(ctx.update.message.chat.id);
+                await new User({
+                    telegram_id: ctx.update.message.chat.id,
+                    twitter_username: ctx.message.text,
+                    subscribed: false,
+                }).save();
+                ctx.reply('User added.');
+            } catch (err) {
+                console.error(err);
+            }
 
-        return ctx.scene.leave();
+            return ctx.scene.leave();
+        }
     },
 );
 
@@ -32,27 +34,29 @@ const jumpToTweetWizard = new WizardScene(
         return ctx.wizard.next();
     },
     async ctx => {
-        const index = Number(ctx.message.text) - 1;
+        if (ctx.message) {
+            const index = Number(ctx.message.text) - 1;
 
-        if (index >= 0 && index < ctx.scene.state.tweets.length) {
-            try {
-                await ctx.scene.state.rewindOne(
-                    ctx,
-                    ctx.scene.state.tweets,
-                    index,
-                    ctx.scene.state.chatId,
-                    ctx.scene.state.messageId,
-                );
-                ctx.deleteMessage(ctx.scene.state.requestIndexMessageId);
-                ctx.deleteMessage(ctx.message.message_id);
-            } catch (err) {
-                console.error(err);
+            if (index >= 0 && index < ctx.scene.state.tweets.length) {
+                try {
+                    await ctx.scene.state.rewindOne(
+                        ctx,
+                        ctx.scene.state.tweets,
+                        index,
+                        ctx.scene.state.chatId,
+                        ctx.scene.state.messageId,
+                    );
+                    ctx.deleteMessage(ctx.scene.state.requestIndexMessageId);
+                    ctx.deleteMessage(ctx.message.message_id);
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                ctx.reply('Invalid index value.');
             }
-        } else {
-            ctx.reply('Invalid index value.');
-        }
 
-        return ctx.scene.leave();
+            return ctx.scene.leave();
+        }
     },
 );
 
