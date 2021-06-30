@@ -29,9 +29,12 @@ mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopol
     console.log('mongodb: Connected!'),
 );
 
-const job = schedule.scheduleJob('0 8 * * *', async () => {
+schedule.scheduleJob('0 8 * * *', async () => {
     try {
         const subscribedUsers = await User.find({ subscribed: true });
+        subscribedUsers.forEach(user => {
+            rewind(null, user.twitter_username, user.telegram_id);
+        });
     } catch (err) {
         console.error(err);
     }
@@ -43,7 +46,6 @@ const job = schedule.scheduleJob('0 8 * * *', async () => {
 
 bot.command('version', ctx => {
     const revision = require('child_process').execSync('git rev-parse HEAD').toString().trim().slice(0, 7);
-
     ctx.reply(revision);
 });
 
