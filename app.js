@@ -39,9 +39,6 @@ schedule.scheduleJob('0 8 * * *', async () => {
         console.error(err);
     }
 
-    subscribedUsers.forEach(user => {
-        rewind(null, user.twitter_username, user.telegram_id);
-    });
 });
 
 bot.command('version', ctx => {
